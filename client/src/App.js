@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { Layout } from 'antd';
 import { useAuth } from './contexts/AuthContext';
 
 // Components
@@ -18,22 +19,45 @@ import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 
+const { Header, Content } = Layout;
+
 function App() {
   const { loading } = useAuth();
   const [isAddMatchModalOpen, setIsAddMatchModalOpen] = useState(false);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#0a0a0a'
+      }}>
         <LoadingSpinner size="large" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-primary">
-      <Navbar />
-      <main className="pb-8">
+    <Layout style={{ minHeight: '100vh', background: '#0a0a0a' }}>
+      <Header style={{ 
+        padding: 0, 
+        background: '#161616',
+        borderBottom: '1px solid #27272a',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+      }}>
+        <Navbar />
+      </Header>
+      
+      <Content style={{ 
+        padding: '24px',
+        background: '#0a0a0a',
+        minHeight: 'calc(100vh - 64px)'
+      }}>
         <Routes>
           {/* Public/Main Routes */}
           <Route path="/" element={<HomePage />} />
@@ -49,7 +73,7 @@ function App() {
           {/* 404 Route */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
-      </main>
+      </Content>
       
       {/* Floating Action Button */}
       <FloatingAddButton onClick={() => setIsAddMatchModalOpen(true)} />
@@ -59,7 +83,7 @@ function App() {
         isOpen={isAddMatchModalOpen} 
         onClose={() => setIsAddMatchModalOpen(false)} 
       />
-    </div>
+    </Layout>
   );
 }
 

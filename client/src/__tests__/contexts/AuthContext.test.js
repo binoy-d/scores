@@ -1,11 +1,11 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import * as api from '../services/api';
+import { AuthProvider, useAuth } from '../../contexts/AuthContext';
+import * as api from '../../services/api';
 
 // Mock the API
-jest.mock('../services/api');
+jest.mock('../../services/api');
 const mockedApi = api;
 
 describe('AuthContext', () => {
@@ -50,7 +50,12 @@ describe('AuthContext', () => {
 
   describe('login', () => {
     it('should login successfully and set user', async () => {
-      const mockUser = { id: 1, username: 'testuser', email: 'test@example.com' };
+      const mockUser = { id: 1, username: 'testuser' };
+      const credentials = {
+        username: 'testuser',
+        password: 'password123'
+      };
+      
       mockedApi.authAPI.login.mockResolvedValue({
         data: { token: 'mock-token', user: mockUser },
       });
@@ -58,13 +63,10 @@ describe('AuthContext', () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await act(async () => {
-        await result.current.login('test@example.com', 'password');
+        await result.current.login(credentials);
       });
 
-      expect(mockedApi.authAPI.login).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password',
-      });
+      expect(mockedApi.authAPI.login).toHaveBeenCalledWith(credentials);
       expect(localStorage.setItem).toHaveBeenCalledWith('token', 'mock-token');
       expect(result.current.user).toEqual(mockUser);
     });

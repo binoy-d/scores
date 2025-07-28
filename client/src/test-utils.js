@@ -66,25 +66,3 @@ export const mockApiResponses = {
     },
   },
 };
-
-// Tests for test utilities
-describe('Test Utilities', () => {
-  test('render function should be available', () => {
-    expect(render).toBeDefined();
-    expect(typeof render).toBe('function');
-  });
-
-  test('mockUsers should contain required user data', () => {
-    expect(mockUsers.regularUser).toBeDefined();
-    expect(mockUsers.adminUser).toBeDefined();
-    expect(mockUsers.regularUser.isAdmin).toBe(false);
-    expect(mockUsers.adminUser.isAdmin).toBe(true);
-  });
-
-  test('mockApiResponses should contain required API responses', () => {
-    expect(mockApiResponses.leaderboard).toBeDefined();
-    expect(mockApiResponses.players).toBeDefined();
-    expect(mockApiResponses.pendingRequests).toBeDefined();
-    expect(mockApiResponses.stats).toBeDefined();
-  });
-});

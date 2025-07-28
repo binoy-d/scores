@@ -201,6 +201,36 @@ router.put('/:id/confirm', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/matches/pending/requests
+ * Get pending match requests for current user
+ */
+router.get('/pending/requests', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const pendingRequests = await database.all(`
+      SELECT mr.*, m.*, 
+             p1.username as player1_username,
+             p2.username as player2_username,
+             req.username as requesting_username
+      FROM match_requests mr
+      JOIN matches m ON mr.match_id = m.id
+      JOIN players p1 ON m.player1_id = p1.id
+      JOIN players p2 ON m.player2_id = p2.id
+      JOIN players req ON mr.requesting_player_id = req.id
+      WHERE mr.confirming_player_id = ? AND mr.status = 'pending'
+      ORDER BY mr.created_at DESC
+    `, [userId]);
+
+    res.json({ pendingRequests });
+
+  } catch (error) {
+    console.error('Get pending requests error:', error);
+    res.status(500).json({ error: 'Failed to get pending requests' });
+  }
+});
+
+/**
  * GET /api/matches
  * Get matches with pagination and filtering
  */
@@ -339,36 +369,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Delete match error:', error);
     res.status(500).json({ error: 'Failed to delete match' });
-  }
-});
-
-/**
- * GET /api/matches/pending/requests
- * Get pending match requests for current user
- */
-router.get('/pending/requests', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const pendingRequests = await database.all(`
-      SELECT mr.*, m.*, 
-             p1.username as player1_username,
-             p2.username as player2_username,
-             req.username as requesting_username
-      FROM match_requests mr
-      JOIN matches m ON mr.match_id = m.id
-      JOIN players p1 ON m.player1_id = p1.id
-      JOIN players p2 ON m.player2_id = p2.id
-      JOIN players req ON mr.requesting_player_id = req.id
-      WHERE mr.confirming_player_id = ? AND mr.status = 'pending'
-      ORDER BY mr.created_at DESC
-    `, [userId]);
-
-    res.json({ pendingRequests });
-
-  } catch (error) {
-    console.error('Get pending requests error:', error);
-    res.status(500).json({ error: 'Failed to get pending requests' });
   }
 });
 

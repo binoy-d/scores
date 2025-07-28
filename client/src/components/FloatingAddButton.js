@@ -1,5 +1,6 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { FloatButton } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 
 const FloatingAddButton = ({ onClick }) => {
@@ -11,13 +12,16 @@ const FloatingAddButton = ({ onClick }) => {
   }
 
   return (
-    <button
+    <FloatButton
+      icon={<PlusOutlined />}
+      type="primary"
       onClick={onClick}
-      className="fab group"
-      title="Add Match"
-    >
-      <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
-    </button>
+      tooltip="Add Match"
+      style={{
+        backgroundColor: '#3b82f6',
+        borderColor: '#3b82f6',
+      }}
+    />
   );
 };
 

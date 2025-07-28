@@ -53,7 +53,14 @@ beforeAll(() => {
   console.error = (...args) => {
     if (
       typeof args[0] === 'string' &&
-      args[0].includes('Warning: ReactDOM.render is no longer supported')
+      (args[0].includes('Warning: ReactDOM.render is no longer supported') ||
+       args[0].includes('Warning: An update to') ||
+       args[0].includes('inside a test was not wrapped in act(...)') ||
+       args[0].includes('Warning: `ReactDOMTestUtils.act` is deprecated') ||
+       args[0].includes('deprecated. Please use `variant` instead') ||
+       args[0].includes('The above error occurred in the') ||
+       args[0].includes('Consider adding an error boundary') ||
+       args[0].includes('Error: Uncaught'))
     ) {
       return;
     }

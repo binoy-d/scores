@@ -67,24 +67,24 @@ export const mockApiResponses = {
   },
 };
 
-// Tests for test utilities
-describe('Test Utilities', () => {
-  test('render function should be available', () => {
+// Test utilities validation
+describe('Test utilities', () => {
+  it('should export render function', () => {
     expect(render).toBeDefined();
     expect(typeof render).toBe('function');
   });
 
-  test('mockUsers should contain required user data', () => {
-    expect(mockUsers.regularUser).toBeDefined();
-    expect(mockUsers.adminUser).toBeDefined();
-    expect(mockUsers.regularUser.isAdmin).toBe(false);
+  it('should have valid mock user data', () => {
+    expect(mockUsers.regularUser).toHaveProperty('username', 'alice');
+    expect(mockUsers.adminUser).toHaveProperty('username', 'admin');
     expect(mockUsers.adminUser.isAdmin).toBe(true);
+    expect(mockUsers.regularUser.isAdmin).toBe(false);
   });
 
-  test('mockApiResponses should contain required API responses', () => {
-    expect(mockApiResponses.leaderboard).toBeDefined();
-    expect(mockApiResponses.players).toBeDefined();
-    expect(mockApiResponses.pendingRequests).toBeDefined();
-    expect(mockApiResponses.stats).toBeDefined();
+  it('should have valid mock API responses', () => {
+    expect(mockApiResponses.leaderboard.data.leaderboard).toHaveLength(2);
+    expect(mockApiResponses.players.data.players).toHaveLength(4);
+    expect(mockApiResponses.pendingRequests.data.pendingRequests).toHaveLength(1);
+    expect(mockApiResponses.stats.data).toHaveProperty('totalPlayers', 2);
   });
 });

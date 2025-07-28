@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { Card, Form, Input, Button, Typography, Space, Alert } from 'antd';
+import { UserOutlined, LockOutlined, TrophyOutlined } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
-import LoadingSpinner from '../components/LoadingSpinner';
+
+const { Title, Text } = Typography;
 
 const LoginPage = () => {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -15,12 +17,11 @@ const LoginPage = () => {
     return <Navigate to="/" replace />;
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (values) => {
     setLoading(true);
 
     try {
-      const result = await login(credentials);
+      const result = await login(values);
       if (result.success) {
         toast.success('Login successful!');
         navigate('/');
@@ -34,97 +35,125 @@ const LoginPage = () => {
     }
   };
 
-  const handleChange = (e) => {
-    setCredentials({
-      ...credentials,
-      [e.target.name]: e.target.value
-    });
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center animate-fade-in">
-          <div className="mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-accent-primary to-accent-hover rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <span className="text-white text-2xl font-bold">S</span>
-            </div>
-          </div>
-          <h2 className="text-4xl font-extrabold text-primary mb-3 bg-gradient-to-r from-text-primary via-accent-primary to-text-primary bg-clip-text text-transparent">
-            Sign in to SVIC Scores
-          </h2>
-          <p className="text-lg text-secondary">
-            Enter your credentials to access your dashboard
-          </p>
-        </div>
-        
-        <form className="mt-8 space-y-6 animate-slide-in" onSubmit={handleSubmit}>
-          <div className="card space-y-6">
-            <div>
-              <label htmlFor="username" className="label">
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                className="input"
-                placeholder="Enter your username"
-                value={credentials.username}
-                onChange={handleChange}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="label">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="input"
-                placeholder="Enter your password"
-                value={credentials.password}
-                onChange={handleChange}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn btn-primary flex justify-center py-4 text-lg font-semibold"
-            >
-              {loading ? (
-                <span className="flex items-center space-x-2">
-                  <LoadingSpinner size="small" />
-                  <span>Signing in...</span>
-                </span>
-              ) : (
-                'Sign In'
-              )}
-            </button>
+    <div style={{
+      minHeight: 'calc(100vh - 64px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px'
+    }}>
+      <Card 
+        style={{ 
+          maxWidth: '400px', 
+          width: '100%',
+          borderRadius: '16px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+          }}>
+            <TrophyOutlined style={{ fontSize: '28px', color: 'white' }} />
           </div>
           
-          <div className="text-center">
-            <div className="bg-card border border-primary rounded-lg p-4">
-              <p className="text-sm text-secondary mb-2 font-medium">Demo Credentials:</p>
-              <div className="space-y-1">
-                <p className="text-sm">
-                  <span className="text-muted">Username:</span> 
-                  <span className="font-bold text-accent ml-2">admin</span>
-                </p>
-                <p className="text-sm">
-                  <span className="text-muted">Password:</span> 
-                  <span className="font-bold text-accent ml-2">admin123</span>
-                </p>
+          <Title level={2} style={{ 
+            margin: 0,
+            background: 'linear-gradient(135deg, #ffffff, #3b82f6)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
+            Sign in to SVIC Scores
+          </Title>
+          
+          <Text type="secondary">
+            Enter your credentials to access your dashboard
+          </Text>
+        </div>
+
+        <Form
+          layout="vertical"
+          onFinish={handleSubmit}
+          autoComplete="off"
+          size="large"
+        >
+          <Form.Item
+            name="username"
+            label="Username"
+            rules={[{ required: true, message: 'Please enter your username' }]}
+          >
+            <Input 
+              prefix={<UserOutlined />} 
+              placeholder="Enter your username"
+              style={{ borderRadius: '8px' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[{ required: true, message: 'Please enter your password' }]}
+          >
+            <Input.Password 
+              prefix={<LockOutlined />} 
+              placeholder="Enter your password"
+              style={{ borderRadius: '8px' }}
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 16 }}>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              loading={loading}
+              block
+              size="large"
+              style={{
+                height: '48px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                border: 'none',
+                fontSize: '16px',
+                fontWeight: 600
+              }}
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </Form.Item>
+        </Form>
+
+        <Alert
+          message="Demo Credentials"
+          description={
+            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+              <div>
+                <Text type="secondary">Username: </Text>
+                <Text strong style={{ color: '#3b82f6' }}>test</Text>
               </div>
-            </div>
-          </div>
-        </form>
-      </div>
+              <div>
+                <Text type="secondary">Password: </Text>
+                <Text strong style={{ color: '#3b82f6' }}>test</Text>
+              </div>
+            </Space>
+          }
+          type="info"
+          showIcon
+          style={{ 
+            borderRadius: '8px',
+            background: 'rgba(59, 130, 246, 0.1)',
+            borderColor: 'rgba(59, 130, 246, 0.3)'
+          }}
+        />
+      </Card>
     </div>
   );
 };

@@ -17,19 +17,19 @@ async function initializeDatabase() {
     if (!adminExists) {
       const hashedPassword = await bcrypt.hash('admin123', 12);
       await database.run(
-        `INSERT INTO players (username, email, password_hash, is_admin, elo_rating) 
-         VALUES (?, ?, ?, ?, ?)`,
-        ['admin', 'admin@svic.com', hashedPassword, 1, 1500]
+        `INSERT INTO players (username, password_hash, is_admin, elo_rating) 
+         VALUES (?, ?, ?, ?)`,
+        ['admin', hashedPassword, 1, 1500]
       );
       console.log('👤 Default admin user created (username: admin, password: admin123)');
     }
     
     // Create some sample players for testing
     const samplePlayers = [
-      { username: 'alice', email: 'alice@svic.com', elo: 1250 },
-      { username: 'bob', email: 'bob@svic.com', elo: 1180 },
-      { username: 'charlie', email: 'charlie@svic.com', elo: 1320 },
-      { username: 'diana', email: 'diana@svic.com', elo: 1150 }
+      { username: 'alice', elo: 1250 },
+      { username: 'bob', elo: 1180 },
+      { username: 'charlie', elo: 1320 },
+      { username: 'diana', elo: 1150 }
     ];
     
     for (const player of samplePlayers) {
@@ -41,9 +41,9 @@ async function initializeDatabase() {
       if (!exists) {
         const hashedPassword = await bcrypt.hash('password123', 12);
         await database.run(
-          `INSERT INTO players (username, email, password_hash, elo_rating) 
-           VALUES (?, ?, ?, ?)`,
-          [player.username, player.email, hashedPassword, player.elo]
+          `INSERT INTO players (username, password_hash, elo_rating) 
+           VALUES (?, ?, ?)`,
+          [player.username, hashedPassword, player.elo]
         );
         console.log(`👤 Sample player created: ${player.username}`);
       }

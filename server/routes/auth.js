@@ -19,10 +19,6 @@ const validateRegister = [
     .withMessage('Username must be between 3-50 characters')
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage('Username can only contain letters, numbers, and underscores'),
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Valid email is required'),
   body('password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long')
@@ -86,16 +82,16 @@ router.post('/register', validateRegister, async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, password } = req.body;
+    const { username, password } = req.body;
 
     // Check if username already exists
     const existingUser = await database.get(
-      'SELECT id FROM players WHERE username = ? OR email = ?',
-      [username, email]
+      'SELECT id FROM players WHERE username = ?',
+      [username]
     );
 
     if (existingUser) {
-      return res.status(409).json({ error: 'Username or email already exists' });
+      return res.status(409).json({ error: 'Username already exists' });
     }
 
     // Hash password
@@ -104,14 +100,14 @@ router.post('/register', validateRegister, async (req, res) => {
 
     // Create user
     const result = await database.run(
-      `INSERT INTO players (username, email, password_hash, elo_rating) 
-       VALUES (?, ?, ?, ?)`,
-      [username, email, hashedPassword, 1200]
+      `INSERT INTO players (username, password_hash, elo_rating) 
+       VALUES (?, ?, ?)`,
+      [username, hashedPassword, 1200]
     );
 
     // Get the created user
     const newUser = await database.get(
-      'SELECT id, username, email, elo_rating, is_admin, created_at FROM players WHERE id = ?',
+      'SELECT id, username, elo_rating, is_admin, created_at FROM players WHERE id = ?',
       [result.id]
     );
 
@@ -133,7 +129,7 @@ router.post('/register', validateRegister, async (req, res) => {
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const user = await database.get(
-      'SELECT id, username, email, elo_rating, is_admin, created_at FROM players WHERE id = ?',
+      'SELECT id, username, elo_rating, is_admin, created_at FROM players WHERE id = ?',
       [req.user.id]
     );
 

@@ -2,7 +2,10 @@ import React from 'react';
 import { useQuery } from 'react-query';
 import { publicAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Trophy, Medal, Award } from 'lucide-react';
+import { Card, Typography, Table, Statistic, Row, Col, Tag } from 'antd';
+import { TrophyOutlined, MedalOutlined, CrownOutlined } from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 const LeaderboardPage = () => {
   const { data, isLoading, error } = useQuery(
@@ -15,122 +18,212 @@ const LeaderboardPage = () => {
 
   if (isLoading) {
     return (
-      <div className="container py-8">
-        <div className="flex justify-center items-center min-h-96">
-          <LoadingSpinner size="large" />
-        </div>
+      <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+        <LoadingSpinner size="large" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container py-8">
-        <div className="text-center">
-          <p className="text-red-600">Failed to load leaderboard</p>
-        </div>
+      <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+        <Card
+          style={{
+            backgroundColor: '#161616',
+            borderColor: '#262626',
+            borderRadius: '12px',
+            textAlign: 'center'
+          }}
+        >
+          <Text style={{ color: '#ef4444' }}>Failed to load leaderboard</Text>
+        </Card>
       </div>
     );
   }
 
   const getRankIcon = (rank) => {
-    if (rank === 1) return <Trophy className="h-5 w-5 text-yellow-500" />;
-    if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
-    if (rank === 3) return <Award className="h-5 w-5 text-orange-500" />;
-    return <span className="text-sm font-bold text-gray-600">#{rank}</span>;
+    if (rank === 1) return <TrophyOutlined style={{ color: '#fbbf24' }} />;
+    if (rank === 2) return <MedalOutlined style={{ color: '#9ca3af' }} />;
+    if (rank === 3) return <CrownOutlined style={{ color: '#fb923c' }} />;
+    return <Text strong style={{ color: '#6b7280' }}>#{rank}</Text>;
   };
 
+  const getWinRateColor = (winRate) => {
+    if (winRate >= 70) return '#10b981';
+    if (winRate >= 50) return '#3b82f6';
+    return '#ef4444';
+  };
+
+  const columns = [
+    {
+      title: 'Rank',
+      dataIndex: 'rank',
+      key: 'rank',
+      width: 80,
+      render: (rank) => getRankIcon(rank),
+    },
+    {
+      title: 'Player',
+      dataIndex: 'username',
+      key: 'username',
+      render: (username) => (
+        <Text strong style={{ color: '#fff' }}>{username}</Text>
+      ),
+    },
+    {
+      title: 'ELO Rating',
+      dataIndex: 'elo_rating',
+      key: 'elo_rating',
+      align: 'center',
+      render: (rating) => (
+        <Text strong style={{ fontSize: '16px', color: '#3b82f6' }}>{rating}</Text>
+      ),
+    },
+    {
+      title: 'Matches',
+      dataIndex: 'total_matches',
+      key: 'total_matches',
+      align: 'center',
+      render: (matches) => (
+        <Text style={{ color: '#9ca3af' }}>{matches}</Text>
+      ),
+    },
+    {
+      title: 'Wins',
+      dataIndex: 'wins',
+      key: 'wins',
+      align: 'center',
+      render: (wins) => (
+        <Text style={{ color: '#9ca3af' }}>{wins}</Text>
+      ),
+    },
+    {
+      title: 'Win Rate',
+      dataIndex: 'win_rate',
+      key: 'win_rate',
+      align: 'center',
+      render: (winRate) => (
+        <Tag color={getWinRateColor(winRate)} style={{ fontWeight: 'bold' }}>
+          {winRate}%
+        </Tag>
+      ),
+    },
+    {
+      title: 'Last Match',
+      dataIndex: 'last_match_date',
+      key: 'last_match_date',
+      render: (date) => (
+        <Text style={{ color: '#9ca3af', fontSize: '12px' }}>
+          {date ? new Date(date).toLocaleDateString() : 'Never'}
+        </Text>
+      ),
+    },
+  ];
+
   return (
-    <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Leaderboard</h1>
-        <p className="text-gray-600">
+    <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <Title style={{ marginBottom: '16px', color: '#fff' }}>
+          Leaderboard
+        </Title>
+        <Text style={{ color: '#9ca3af' }}>
           Rankings based on ELO rating. Minimum 3 matches required to appear on leaderboard.
-        </p>
+        </Text>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-gray-900">{stats.total_players || 0}</div>
-          <div className="text-gray-600">Total Players</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-gray-900">{stats.total_matches || 0}</div>
-          <div className="text-gray-600">Total Matches</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-gray-900">{stats.highest_elo || 1200}</div>
-          <div className="text-gray-600">Highest ELO</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-gray-900">{stats.average_elo || 1200}</div>
-          <div className="text-gray-600">Average ELO</div>
-        </div>
-      </div>
+      <Row gutter={[20, 20]} style={{ marginBottom: '32px' }}>
+        <Col xs={12} md={6}>
+          <Card
+            style={{
+              backgroundColor: '#161616',
+              borderColor: '#262626',
+              borderRadius: '12px',
+              textAlign: 'center'
+            }}
+          >
+            <Statistic
+              title={<Text style={{ color: '#9ca3af' }}>Total Players</Text>}
+              value={stats.total_players || 0}
+              valueStyle={{ color: '#fff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} md={6}>
+          <Card
+            style={{
+              backgroundColor: '#161616',
+              borderColor: '#262626',
+              borderRadius: '12px',
+              textAlign: 'center'
+            }}
+          >
+            <Statistic
+              title={<Text style={{ color: '#9ca3af' }}>Total Matches</Text>}
+              value={stats.total_matches || 0}
+              valueStyle={{ color: '#fff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} md={6}>
+          <Card
+            style={{
+              backgroundColor: '#161616',
+              borderColor: '#262626',
+              borderRadius: '12px',
+              textAlign: 'center'
+            }}
+          >
+            <Statistic
+              title={<Text style={{ color: '#9ca3af' }}>Highest ELO</Text>}
+              value={stats.highest_elo || 1200}
+              valueStyle={{ color: '#fff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} md={6}>
+          <Card
+            style={{
+              backgroundColor: '#161616',
+              borderColor: '#262626',
+              borderRadius: '12px',
+              textAlign: 'center'
+            }}
+          >
+            <Statistic
+              title={<Text style={{ color: '#9ca3af' }}>Average ELO</Text>}
+              value={stats.average_elo || 1200}
+              valueStyle={{ color: '#fff' }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       {/* Leaderboard */}
-      <div className="card">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4">Rank</th>
-                <th className="text-left py-3 px-4">Player</th>
-                <th className="text-center py-3 px-4">ELO Rating</th>
-                <th className="text-center py-3 px-4">Matches</th>
-                <th className="text-center py-3 px-4">Wins</th>
-                <th className="text-center py-3 px-4">Win Rate</th>
-                <th className="text-left py-3 px-4">Last Match</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((player) => (
-                <tr key={player.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center">
-                      {getRankIcon(player.rank)}
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="font-medium text-gray-900">{player.username}</div>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <span className="text-lg font-bold text-gray-900">{player.elo_rating}</span>
-                  </td>
-                  <td className="py-4 px-4 text-center text-gray-600">
-                    {player.total_matches}
-                  </td>
-                  <td className="py-4 px-4 text-center text-gray-600">
-                    {player.wins}
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <span className={`font-medium ${
-                      player.win_rate >= 70 ? 'text-green-600' :
-                      player.win_rate >= 50 ? 'text-blue-600' :
-                      'text-red-600'
-                    }`}>
-                      {player.win_rate}%
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-gray-600 text-sm">
-                    {player.last_match_date ? 
-                      new Date(player.last_match_date).toLocaleDateString() : 
-                      'Never'
-                    }
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {leaderboard.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No players meet the minimum requirements yet.
-            </div>
-          )}
-        </div>
-      </div>
+      <Card
+        style={{
+          backgroundColor: '#161616',
+          borderColor: '#262626',
+          borderRadius: '12px'
+        }}
+      >
+        <Table
+          columns={columns}
+          dataSource={leaderboard}
+          rowKey="id"
+          pagination={false}
+          locale={{
+            emptyText: (
+              <Text style={{ color: '#9ca3af' }}>
+                No players meet the minimum requirements yet.
+              </Text>
+            )
+          }}
+          style={{
+            backgroundColor: 'transparent'
+          }}
+        />
+      </Card>
     </div>
   );
 };

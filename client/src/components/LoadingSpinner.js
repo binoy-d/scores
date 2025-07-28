@@ -1,14 +1,11 @@
 import React from 'react';
+import { Spin } from 'antd';
 
-const LoadingSpinner = ({ size = 'medium', className = '' }) => {
-  const sizeClasses = {
-    small: 'w-4 h-4',
-    medium: 'w-6 h-6',
-    large: 'w-8 h-8'
-  };
-
+const LoadingSpinner = ({ size = 'default', className = '' }) => {
   return (
-    <div className={`spinner ${sizeClasses[size]} ${className}`} />
+    <div className={className} style={{ textAlign: 'center', padding: '20px' }}>
+      <Spin size={size} />
+    </div>
   );
 };
 

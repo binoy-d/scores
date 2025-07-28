@@ -9,7 +9,6 @@ const UsersPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
-    email: '',
     password: '',
     isAdmin: false
   });
@@ -40,7 +39,7 @@ const UsersPage = () => {
       queryClient.invalidateQueries('players');
       toast.success('User created successfully');
       setShowCreateForm(false);
-      setFormData({ username: '', email: '', password: '', isAdmin: false });
+      setFormData({ username: '', password: '', isAdmin: false });
     },
     onError: (error) => {
       toast.error(error.response?.data?.error || 'Failed to create user');
@@ -59,8 +58,8 @@ const UsersPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.username || !formData.email || !formData.password) {
-      toast.error('Please fill in all required fields');
+    if (!formData.username || !formData.password) {
+      toast.error('Please fill in username and password');
       return;
     }
     createUserMutation.mutate(formData);
@@ -145,18 +144,6 @@ const UsersPage = () => {
               </div>
 
               <div>
-                <label className="label">Email *</label>
-                <input
-                  type="email"
-                  className="input"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Enter email"
-                  required
-                />
-              </div>
-
-              <div>
                 <label className="label">Password *</label>
                 <input
                   type="password"
@@ -212,7 +199,6 @@ const UsersPage = () => {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4">Username</th>
-                <th className="text-left py-3 px-4">Email</th>
                 <th className="text-center py-3 px-4">ELO Rating</th>
                 <th className="text-center py-3 px-4">Matches</th>
                 <th className="text-center py-3 px-4">Win Rate</th>
@@ -226,9 +212,6 @@ const UsersPage = () => {
                 <tr key={player.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-4 px-4">
                     <div className="font-medium text-gray-900">{player.username}</div>
-                  </td>
-                  <td className="py-4 px-4 text-gray-600">
-                    {player.email}
                   </td>
                   <td className="py-4 px-4 text-center">
                     <span className="font-semibold text-gray-900">{player.elo_rating}</span>

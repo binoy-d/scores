@@ -16,6 +16,22 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
+  const getCurrentUser = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      setUser(response.data.user);
+    } catch (error) {
+      console.error('Failed to get current user:', error);
+      // Don't call logout here to avoid infinite loops
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      delete api.defaults.headers.common['Authorization'];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -24,18 +40,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, [token]);
-
-  const getCurrentUser = async () => {
-    try {
-      const response = await api.get('/auth/me');
-      setUser(response.data.user);
-    } catch (error) {
-      console.error('Failed to get current user:', error);
-      logout();
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const login = async (credentials) => {
     try {
@@ -55,10 +59,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    delete api.defaults.headers.common['Authorization'];
+    try {
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      delete api.defaults.headers.common['Authorization'];
+      setLoading(false);
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Force cleanup even if there's an error
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      delete api.defaults.headers.common['Authorization'];
+      setLoading(false);
+    }
   };
 
   const updateUser = (userData) => {

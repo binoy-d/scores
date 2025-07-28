@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { publicAPI, matchesAPI } from '../services/api';
-import { Modal, Form, Select, Input, Button, message } from 'antd';
+import { Modal, Form, Select, Input, InputNumber, Button, message } from 'antd';
 import { UserOutlined, TrophyOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
@@ -63,10 +63,15 @@ const AddMatchModal = ({ isOpen, onClose }) => {
   };
 
   const handleSubmit = async (values) => {
-    const { winner, loser, notes } = values;
+    const { opponent, playerScore, opponentScore, notes } = values;
     
-    if (winner === loser) {
-      message.error('Winner and loser must be different players');
+    if (!opponent || playerScore === undefined || opponentScore === undefined) {
+      message.error('Please fill in all required fields');
+      return;
+    }
+
+    if (playerScore === opponentScore) {
+      message.error('Matches cannot end in a tie in ping pong');
       return;
     }
 
@@ -74,8 +79,9 @@ const AddMatchModal = ({ isOpen, onClose }) => {
     
     try {
       await createMatchMutation.mutateAsync({
-        winner_id: parseInt(winner),
-        loser_id: parseInt(loser),
+        opponent_id: parseInt(opponent),
+        player_score: parseInt(playerScore),
+        opponent_score: parseInt(opponentScore),
         notes: notes?.trim() || undefined
       });
     } catch (error) {
@@ -86,7 +92,7 @@ const AddMatchModal = ({ isOpen, onClose }) => {
   return (
     <Modal
       title={
-        <span style={{ color: '#9333ea', fontSize: '20px', fontWeight: 'bold' }}>
+        <span style={{ color: '#3b82f6', fontSize: '20px', fontWeight: 'bold' }}>
           <TrophyOutlined style={{ marginRight: 8 }} />
           Add Match Result
         </span>
@@ -104,17 +110,17 @@ const AddMatchModal = ({ isOpen, onClose }) => {
         style={{ marginTop: 24 }}
       >
         <Form.Item
-          name="winner"
+          name="opponent"
           label={
             <span style={{ fontWeight: 'bold' }}>
-              <TrophyOutlined style={{ marginRight: 4, color: '#f59e0b' }} />
-              Winner
+              <UserOutlined style={{ marginRight: 4, color: '#6b7280' }} />
+              Opponent
             </span>
           }
-          rules={[{ required: true, message: 'Please select the winner!' }]}
+          rules={[{ required: true, message: 'Please select your opponent!' }]}
         >
           <Select
-            placeholder={isLoading ? 'Loading players...' : 'Select winner...'}
+            placeholder={isLoading ? 'Loading players...' : 'Select opponent...'}
             loading={isLoading}
             disabled={isSubmitting}
             size="large"
@@ -127,40 +133,54 @@ const AddMatchModal = ({ isOpen, onClose }) => {
             {players.map((player) => (
               <Option key={player.id} value={player.id}>
                 <UserOutlined style={{ marginRight: 8 }} />
-                {player.username} (ELO: {player.elo_rating})
+                {player.username} {player.elo_rating && `(ELO: ${player.elo_rating})`}
               </Option>
             ))}
           </Select>
         </Form.Item>
 
         <Form.Item
-          name="loser"
+          name="playerScore"
           label={
             <span style={{ fontWeight: 'bold' }}>
-              <UserOutlined style={{ marginRight: 4, color: '#6b7280' }} />
-              Loser
+              <TrophyOutlined style={{ marginRight: 4, color: '#059669' }} />
+              Your Score
             </span>
           }
-          rules={[{ required: true, message: 'Please select the loser!' }]}
+          rules={[
+            { required: true, message: 'Please enter your score!' },
+            { type: 'number', min: 0, message: 'Score must be 0 or greater!' }
+          ]}
         >
-          <Select
-            placeholder={isLoading ? 'Loading players...' : 'Select loser...'}
-            loading={isLoading}
-            disabled={isSubmitting}
+          <InputNumber
+            placeholder="Enter your score..."
             size="large"
-            showSearch
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            }
-          >
-            {players.map((player) => (
-              <Option key={player.id} value={player.id}>
-                <UserOutlined style={{ marginRight: 8 }} />
-                {player.username} (ELO: {player.elo_rating})
-              </Option>
-            ))}
-          </Select>
+            min={0}
+            disabled={isSubmitting}
+            style={{ width: '100%' }}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="opponentScore"
+          label={
+            <span style={{ fontWeight: 'bold' }}>
+              <UserOutlined style={{ marginRight: 4, color: '#dc2626' }} />
+              Opponent's Score
+            </span>
+          }
+          rules={[
+            { required: true, message: 'Please enter opponent\'s score!' },
+            { type: 'number', min: 0, message: 'Score must be 0 or greater!' }
+          ]}
+        >
+          <InputNumber
+            placeholder="Enter opponent's score..."
+            size="large"
+            min={0}
+            disabled={isSubmitting}
+            style={{ width: '100%' }}
+          />
         </Form.Item>
 
         <Form.Item
@@ -189,7 +209,7 @@ const AddMatchModal = ({ isOpen, onClose }) => {
               htmlType="submit"
               loading={isSubmitting}
               disabled={isLoading}
-              style={{ backgroundColor: '#9333ea', borderColor: '#9333ea' }}
+              style={{ backgroundColor: '#3b82f6', borderColor: '#3b82f6' }}
             >
               {isSubmitting ? 'Adding Match...' : 'Add Match'}
             </Button>

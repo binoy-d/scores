@@ -81,7 +81,6 @@ class Database {
       `CREATE TABLE IF NOT EXISTS players (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username VARCHAR(50) UNIQUE NOT NULL,
-        email VARCHAR(100) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         elo_rating INTEGER DEFAULT 1200,
         is_admin BOOLEAN DEFAULT 0,
@@ -121,7 +120,6 @@ class Database {
 
       // Create indexes for better performance
       `CREATE INDEX IF NOT EXISTS idx_players_username ON players (username)`,
-      `CREATE INDEX IF NOT EXISTS idx_players_email ON players (email)`,
       `CREATE INDEX IF NOT EXISTS idx_matches_players ON matches (player1_id, player2_id)`,
       `CREATE INDEX IF NOT EXISTS idx_matches_status ON matches (status)`,
       `CREATE INDEX IF NOT EXISTS idx_match_requests_status ON match_requests (status)`,

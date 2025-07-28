@@ -2,12 +2,12 @@ import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient } from 'react-query';
-import HomePage from '../pages/HomePage';
-import { render, mockUsers, mockApiResponses } from './test-utils';
-import * as api from '../services/api';
+import HomePage from '../../pages/HomePage';
+import { render, mockUsers, mockApiResponses } from '../test-utils';
+import * as api from '../../services/api';
 
 // Mock the API
-jest.mock('../services/api');
+jest.mock('../../services/api');
 const mockedApi = api;
 
 // Mock Ant Design components that might cause issues
