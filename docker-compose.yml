@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - JWT_SECRET=svic-scores-production-secret-change-this-in-real-deployment
+      - CLIENT_URL=http://localhost:3000
+    volumes:
+      - ./server/database:/app/database
+    depends_on:
+      - client
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+
+  # Development services
+  server-dev:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - JWT_SECRET=svic-scores-development-secret
+      - CLIENT_URL=http://localhost:3000
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    profiles:
+      - dev
+
+  client-dev:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000/api
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server-dev
+    profiles:
+      - dev
