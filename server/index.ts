@@ -1,11 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
-const dotenv = require('dotenv');
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import path from 'path';
+import dotenv from 'dotenv';
 
-// Routes
+// Use require for modules not yet converted to TypeScript
 const authRoutes = require('./routes/auth');
 const playerRoutes = require('./routes/players');
 const matchRoutes = require('./routes/matches');
@@ -18,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Initialize database connection
-async function initializeApp() {
+async function initializeApp(): Promise<void> {
   try {
     await database.connect();
     console.log('✅ Database connected successfully');
@@ -57,7 +57,7 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/public', publicRoutes);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
@@ -69,13 +69,13 @@ app.get('/api/health', (req, res) => {
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/build')));
   
-  app.get('*', (req, res) => {
+  app.get('*', (req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
   });
 }
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ 
     error: 'Something went wrong!',
@@ -84,7 +84,7 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use('*', (req: Request, res: Response) => {
   res.status(404).json({ error: 'Route not found' });
 });
 

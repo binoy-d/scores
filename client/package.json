@@ -9,10 +9,12 @@
     "@testing-library/user-event": "^14.5.2",
     "antd": "^5.26.6",
     "axios": "^1.5.0",
+    "chart.js": "^4.5.0",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",
     "lucide-react": "^0.279.0",
     "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.45.4",
     "react-hot-toast": "^2.4.1",
@@ -52,8 +54,14 @@
   "proxy": "http://localhost:5001",
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.4",
+    "@types/jest": "^29.5.5",
+    "@types/node": "^20.8.0",
+    "@types/react": "^18.2.25",
+    "@types/react-dom": "^18.2.11",
+    "@types/react-router-dom": "^5.3.3",
     "axios-mock-adapter": "^2.1.0",
     "jest-environment-jsdom": "^29.7.0",
-    "msw": "^2.10.4"
+    "msw": "^2.10.4",
+    "typescript": "^5.2.2"
   }
 }

@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/leaderboard', async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-    const minMatches = parseInt(req.query.min_matches) || 3; // Minimum matches to appear on leaderboard
+    const minMatches = parseInt(req.query.min_matches) || 1; // Minimum matches to appear on leaderboard
 
     const leaderboard = await database.all(`
       SELECT 
@@ -167,7 +167,7 @@ router.get('/player/:username', async (req, res) => {
       LEFT JOIN matches m2 ON (m2.player1_id = p2.id OR m2.player2_id = p2.id) AND m2.status = 'confirmed'
       WHERE p2.elo_rating > ?
       GROUP BY p2.id
-      HAVING COUNT(DISTINCT m2.id) >= 3
+      HAVING COUNT(DISTINCT m2.id) >= 1
     `, [player.elo_rating]);
 
     player.rank = rankQuery ? rankQuery.rank : 1;
@@ -207,6 +207,95 @@ router.get('/player/:username', async (req, res) => {
   } catch (error) {
     console.error('Get public player error:', error);
     res.status(500).json({ error: 'Failed to get player profile' });
+  }
+});
+
+/**
+ * GET /api/public/player/:username/elo-history
+ * Get ELO history for a player
+ */
+router.get('/player/:username/elo-history', async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    // First get the player
+    const player = await database.get(`
+      SELECT id FROM players WHERE username = ?
+    `, [username]);
+
+    if (!player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    // Get ELO history from matches
+    const eloHistory = await database.all(`
+      SELECT 
+        m.confirmed_at as date,
+        CASE 
+          WHEN m.player1_id = ? THEN m.player1_elo_before
+          ELSE m.player2_elo_before
+        END as elo_before,
+        CASE 
+          WHEN m.player1_id = ? THEN m.player1_elo_after
+          ELSE m.player2_elo_after
+        END as elo_after,
+        CASE 
+          WHEN m.player1_id = ? THEN m.player1_score
+          ELSE m.player2_score
+        END as player_score,
+        CASE 
+          WHEN m.player1_id = ? THEN m.player2_score
+          ELSE m.player1_score
+        END as opponent_score,
+        CASE 
+          WHEN m.winner_id = ? THEN 'win'
+          ELSE 'loss'
+        END as result,
+        CASE 
+          WHEN m.player1_id = ? THEN p2.username
+          ELSE p1.username
+        END as opponent_username
+      FROM matches m
+      JOIN players p1 ON m.player1_id = p1.id
+      JOIN players p2 ON m.player2_id = p2.id
+      WHERE (m.player1_id = ? OR m.player2_id = ?) 
+        AND m.status = 'confirmed'
+        AND m.player1_elo_before IS NOT NULL
+        AND m.player2_elo_before IS NOT NULL
+      ORDER BY m.confirmed_at ASC
+    `, [player.id, player.id, player.id, player.id, player.id, player.id, player.id, player.id]);
+
+    // Add starting ELO point if we have history
+    let fullHistory = [];
+    if (eloHistory.length > 0) {
+      // Add the starting point
+      fullHistory.push({
+        date: null,
+        elo: eloHistory[0].elo_before,
+        isStarting: true
+      });
+
+      // Add all the match points
+      fullHistory = fullHistory.concat(eloHistory.map(match => ({
+        date: match.date,
+        elo: match.elo_after,
+        eloChange: match.elo_after - match.elo_before,
+        result: match.result,
+        opponent: match.opponent_username,
+        playerScore: match.player_score,
+        opponentScore: match.opponent_score,
+        isStarting: false
+      })));
+    }
+
+    res.json({ 
+      elo_history: fullHistory,
+      total_matches: eloHistory.length
+    });
+
+  } catch (error) {
+    console.error('Get player ELO history error:', error);
+    res.status(500).json({ error: 'Failed to get player ELO history' });
   }
 });
 

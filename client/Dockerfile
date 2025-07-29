@@ -6,11 +6,14 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies with legacy peer deps to handle TypeScript version conflicts
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
+
+# Set API URL for production (will be handled by nginx proxy)
+ENV REACT_APP_API_URL=/api
 
 # Build the app
 RUN npm run build

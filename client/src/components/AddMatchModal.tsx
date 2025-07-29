@@ -7,7 +7,12 @@ import { UserOutlined, TrophyOutlined } from '@ant-design/icons';
 const { Option } = Select;
 const { TextArea } = Input;
 
-const AddMatchModal = ({ isOpen, onClose }) => {
+interface AddMatchModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const AddMatchModal: React.FC<AddMatchModalProps> = ({ isOpen, onClose }) => {
   const [form] = Form.useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -38,7 +43,7 @@ const AddMatchModal = ({ isOpen, onClose }) => {
 
   // Mutation to create match
   const createMatchMutation = useMutation(
-    (matchData) => matchesAPI.create(matchData),
+    (matchData: any) => matchesAPI.create(matchData),
     {
       onSuccess: (response) => {
         queryClient.invalidateQueries('public-leaderboard');
@@ -77,7 +82,7 @@ const AddMatchModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleSubmit = async (values) => {
+  const handleSubmit = async (values: any) => {
     const { opponent, playerScore, opponentScore, notes } = values;
     
     if (!opponent || playerScore === undefined || opponentScore === undefined) {
@@ -140,7 +145,7 @@ const AddMatchModal = ({ isOpen, onClose }) => {
             disabled={isSubmitting}
             size="large"
             showSearch
-            filterOption={(input, option) => {
+            filterOption={(input, option: any) => {
               // Get the player data using the option value (player.id)
               const player = players.find(p => p.id === option.value);
               if (!player) return false;

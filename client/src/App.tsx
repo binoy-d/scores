@@ -12,18 +12,17 @@ import FloatingAddButton from './components/FloatingAddButton';
 // Pages
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
-import UsersPage from './pages/UsersPage';
+import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Route Guards
 import ProtectedRoute from './components/ProtectedRoute';
-import AdminRoute from './components/AdminRoute';
 
 const { Header, Content } = Layout;
 
-function App() {
+const App: React.FC = () => {
   const { loading } = useAuth();
-  const [isAddMatchModalOpen, setIsAddMatchModalOpen] = useState(false);
+  const [isAddMatchModalOpen, setIsAddMatchModalOpen] = useState<boolean>(false);
 
   if (loading) {
     return (
@@ -63,11 +62,11 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           
-          {/* Admin Routes */}
-          <Route path="/users" element={
-            <AdminRoute>
-              <UsersPage />
-            </AdminRoute>
+          {/* Protected Routes */}
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
           } />
           
           {/* 404 Route */}

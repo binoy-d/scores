@@ -1,23 +1,25 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Space, Typography, Button } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography, Button } from 'antd';
+import type { MenuProps } from 'antd';
 import { 
   TrophyOutlined, 
-  UserOutlined, 
   LogoutOutlined, 
   TeamOutlined,
-  LoginOutlined 
+  LoginOutlined,
+  SettingOutlined 
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 
-const { Header } = Layout;
 const { Text } = Typography;
 
-const Navbar = () => {
+type MenuItem = Required<MenuProps>['items'][number];
+
+const Navbar: React.FC = () => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     try {
       logout();
       setTimeout(() => {
@@ -29,7 +31,7 @@ const Navbar = () => {
     }
   };
 
-  const userMenuItems = [
+  const userMenuItems: MenuItem[] = [
     {
       key: 'username',
       label: (
@@ -47,6 +49,11 @@ const Navbar = () => {
       type: 'divider',
     },
     {
+      key: 'profile',
+      label: <Link to="/profile" style={{ color: 'inherit', textDecoration: 'none' }}>Settings</Link>,
+      icon: <SettingOutlined />,
+    },
+    {
       key: 'logout',
       label: 'Sign Out',
       icon: <LogoutOutlined />,
@@ -55,21 +62,7 @@ const Navbar = () => {
     },
   ];
 
-  const menuItems = [
-    {
-      key: 'leaderboard',
-      label: <Link to="/">Leaderboard</Link>,
-      icon: <TrophyOutlined />,
-    },
-  ];
-
-  if (isAuthenticated() && isAdmin()) {
-    menuItems.push({
-      key: 'users',
-      label: <Link to="/users">Users</Link>,
-      icon: <TeamOutlined />,
-    });
-  }
+  const menuItems: MenuItem[] = [];
 
   return (
     <div style={{
@@ -117,16 +110,18 @@ const Navbar = () => {
       {/* Navigation and User Section */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
         {/* Menu Items */}
-        <Menu
-          theme="dark"
-          mode="horizontal"
-          items={menuItems}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            gap: '16px'
-          }}
-        />
+        {menuItems.length > 0 && (
+          <Menu
+            theme="dark"
+            mode="horizontal"
+            items={menuItems}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              gap: '16px'
+            }}
+          />
+        )}
 
         {/* User Section */}
         {isAuthenticated() ? (

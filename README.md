@@ -41,19 +41,76 @@ A comprehensive scoring system for tracking games played at SVIC. Currently supp
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
-- Docker (optional, for containerized deployment)
+- Node.js (v18+) - for local development
+- Docker & Docker Compose - for containerized deployment
 
-### Development Setup
+### Quick Start with Docker (Recommended)
+
+The fastest way to get the application running:
+
 ```bash
-# Install dependencies
+# Clone the repository
+git clone <repository-url>
+cd scores
+
+# Start the application in production mode
+docker-compose up --build -d
+
+# Or start in development mode with hot reloading
+docker-compose --profile dev up --build -d
+```
+
+The application will be available at:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5001/api
+
+### Docker Management Commands
+
+```bash
+# Start production services
+docker-compose up --build -d
+
+# Start development services
+docker-compose --profile dev up --build -d
+
+# Stop all services
+docker-compose down
+docker-compose --profile dev down
+
+# View logs
+docker-compose logs -f
+
+# Check service status
+docker-compose ps
+
+# Health check
+curl http://localhost:5001/api/health
+
+# Clean up (removes data!)
+docker-compose down -v
+```
+
+For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
+
+For a quick reference of Docker Compose commands, see [DOCKER_COMMANDS.md](DOCKER_COMMANDS.md).
+
+### Local Development Setup
+
+If you prefer to run without Docker:
+
+```bash
+# Install dependencies for both client and server
 npm install
 
 # Start development servers
 npm run dev
 
-# Run in Docker
-docker-compose up --build
+# Or start individually:
+# Terminal 1 - Start server
+cd server && npm run dev
+
+# Terminal 2 - Start client  
+cd client && npm start
 ```
 
 ### Database Schema
@@ -61,7 +118,6 @@ docker-compose up --build
 #### Players
 - `id`: Primary key
 - `username`: Unique player identifier
-- `email`: Contact information
 - `elo_rating`: Current ELO score (starts at 1200)
 - `created_at`: Registration timestamp
 - `is_admin`: Admin privileges flag

@@ -1,33 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { playersAPI } from '../services/api';
-import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Users, Plus, Trash2, Edit3 } from 'lucide-react';
+import { 
+  Card, 
+  Table, 
+  Button, 
+  Modal, 
+  Form, 
+  Input, 
+  Switch, 
+  Typography, 
+  Space, 
+  Popconfirm,
+  Tag,
+  message
+} from 'antd';
+import { UserAddOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 const UsersPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    isAdmin: false
-  });
+  const [form] = Form.useForm();
 
   const queryClient = useQueryClient();
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (showCreateForm) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    // Cleanup on unmount
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showCreateForm]);
 
   const { data, isLoading, error } = useQuery(
     'players',
@@ -35,243 +32,323 @@ const UsersPage = () => {
   );
 
   const createUserMutation = useMutation(playersAPI.create, {
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries('players');
-      toast.success('User created successfully');
+      const defaultPassword = response.data?.defaultPassword || 'password123';
+      message.success(`User created successfully! Default password: ${defaultPassword}`);
       setShowCreateForm(false);
-      setFormData({ username: '', password: '', isAdmin: false });
+      form.resetFields();
     },
     onError: (error) => {
-      toast.error(error.response?.data?.error || 'Failed to create user');
+      message.error(error.response?.data?.error || 'Failed to create user');
     }
   });
 
   const deleteUserMutation = useMutation(playersAPI.delete, {
     onSuccess: () => {
       queryClient.invalidateQueries('players');
-      toast.success('User deleted successfully');
+      message.success('User deleted successfully');
     },
     onError: (error) => {
-      toast.error(error.response?.data?.error || 'Failed to delete user');
+      message.error(error.response?.data?.error || 'Failed to delete user');
     }
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.username || !formData.password) {
-      toast.error('Please fill in username and password');
-      return;
-    }
-    createUserMutation.mutate(formData);
+  const handleSubmit = async (values) => {
+    createUserMutation.mutate({
+      username: values.username,
+      isAdmin: values.isAdmin || false
+    });
   };
 
-  const handleDelete = (userId, username) => {
-    if (window.confirm(`Are you sure you want to delete user "${username}"?`)) {
-      deleteUserMutation.mutate(userId);
-    }
+  const handleDelete = (userId) => {
+    deleteUserMutation.mutate(userId);
   };
 
   const players = data?.data?.players || [];
 
   if (isLoading) {
     return (
-      <div className="container py-8">
-        <div className="flex justify-center items-center min-h-96">
-          <LoadingSpinner size="large" />
-        </div>
+      <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+        <LoadingSpinner size="large" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container py-8">
-        <div className="text-center">
-          <p className="text-red-600">Failed to load users</p>
-        </div>
+      <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+        <Card
+          style={{
+            backgroundColor: '#161616',
+            borderColor: '#262626',
+            borderRadius: '12px',
+            textAlign: 'center'
+          }}
+        >
+          <Text style={{ color: '#ef4444' }}>Failed to load users</Text>
+        </Card>
       </div>
     );
   }
 
-  return (
-    <div className="container py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
-          <p className="text-gray-600">Create and manage user accounts</p>
-        </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="btn btn-primary flex items-center space-x-2"
+  const columns = [
+    {
+      title: 'Username',
+      dataIndex: 'username',
+      key: 'username',
+      render: (username) => (
+        <Text strong style={{ color: '#fff' }}>{username}</Text>
+      ),
+    },
+    {
+      title: 'ELO Rating',
+      dataIndex: 'elo_rating',
+      key: 'elo_rating',
+      align: 'center',
+      render: (rating) => (
+        <Text strong style={{ fontSize: '16px', color: '#3b82f6' }}>{rating}</Text>
+      ),
+    },
+    {
+      title: 'Matches',
+      dataIndex: 'total_matches',
+      key: 'total_matches',
+      align: 'center',
+      render: (matches) => (
+        <Text style={{ color: '#9ca3af' }}>{matches || 0}</Text>
+      ),
+    },
+    {
+      title: 'Win Rate',
+      dataIndex: 'winRate',
+      key: 'winRate',
+      align: 'center',
+      render: (winRate) => {
+        const rate = winRate || 0;
+        const color = rate >= 70 ? '#10b981' : rate >= 50 ? '#3b82f6' : '#ef4444';
+        return (
+          <Tag color={color} style={{ fontWeight: 'bold' }}>
+            {rate}%
+          </Tag>
+        );
+      },
+    },
+    {
+      title: 'Role',
+      dataIndex: 'is_admin',
+      key: 'is_admin',
+      align: 'center',
+      render: (isAdmin) => (
+        <Tag color={isAdmin ? '#9333ea' : '#6b7280'}>
+          {isAdmin ? 'Admin' : 'User'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Created',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date) => (
+        <Text style={{ color: '#9ca3af', fontSize: '12px' }}>
+          {new Date(date).toLocaleDateString()}
+        </Text>
+      ),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      align: 'center',
+      render: (_, record) => (
+        <Popconfirm
+          title="Delete User"
+          description={`Are you sure you want to delete "${record.username}"?`}
+          onConfirm={() => handleDelete(record.id)}
+          okText="Yes"
+          cancelText="No"
+          okButtonProps={{ danger: true }}
         >
-          <Plus className="h-4 w-4" />
-          <span>Create User</span>
-        </button>
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            loading={deleteUserMutation.isLoading}
+            style={{
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          />
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-start',
+        marginBottom: '32px' 
+      }}>
+        <div>
+          <Title style={{ marginBottom: '8px', color: '#fff' }}>
+            User Management
+          </Title>
+          <Text style={{ color: '#9ca3af' }}>
+            Create and manage user accounts
+          </Text>
+        </div>
+        <Button
+          type="primary"
+          icon={<UserAddOutlined />}
+          size="large"
+          onClick={() => setShowCreateForm(true)}
+          style={{
+            backgroundColor: '#3b82f6',
+            borderColor: '#3b82f6',
+            borderRadius: '12px',
+            height: '48px',
+            fontSize: '16px',
+            fontWeight: '600'
+          }}
+        >
+          Create User
+        </Button>
       </div>
 
       {/* Create User Modal */}
-      {showCreateForm && (
-        <div 
-          className="modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowCreateForm(false);
-            }
-          }}
+      <Modal
+        title={
+          <Space style={{ fontSize: '20px', fontWeight: 'bold', color: '#3b82f6' }}>
+            <UserAddOutlined />
+            Create New User
+          </Space>
+        }
+        open={showCreateForm}
+        onCancel={() => {
+          setShowCreateForm(false);
+          form.resetFields();
+        }}
+        footer={null}
+        width={520}
+        style={{ top: 20 }}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          style={{ marginTop: '24px' }}
         >
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2 className="text-xl font-semibold">Create New User</h2>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                className="modal-close-btn"
-              >
-                ✕
-              </button>
-            </div>
+          <Form.Item
+            name="username"
+            label={
+              <Text strong style={{ fontSize: '14px' }}>
+                Username *
+              </Text>
+            }
+            rules={[{ required: true, message: 'Please enter a username!' }]}
+            style={{ marginBottom: '24px' }}
+          >
+            <Input
+              placeholder="Enter username"
+              size="large"
+              style={{ borderRadius: '8px' }}
+            />
+          </Form.Item>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="label">Username *</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="Enter username"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="label">Password *</label>
-                <input
-                  type="password"
-                  className="input"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Enter password"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  User can change this password after first login
-                </p>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="isAdmin"
-                  checked={formData.isAdmin}
-                  onChange={(e) => setFormData({ ...formData, isAdmin: e.target.checked })}
-                  className="mr-2"
-                />
-                <label htmlFor="isAdmin" className="text-sm text-gray-700">
-                  Grant admin privileges
-                </label>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateForm(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createUserMutation.isLoading}
-                  className="btn btn-primary"
-                >
-                  {createUserMutation.isLoading ? <LoadingSpinner size="small" /> : 'Create User'}
-                </button>
-              </div>
-            </form>
+          <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#1f2937', borderRadius: '8px', border: '1px solid #374151' }}>
+            <Text strong style={{ fontSize: '14px', color: '#3b82f6' }}>
+              Default Password
+            </Text>
+            <br />
+            <Text style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', display: 'block' }}>
+              New users will be created with the password: <Text code style={{ backgroundColor: '#374151', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>password123</Text>
+            </Text>
+            <Text style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', display: 'block' }}>
+              Users can change this password after their first login
+            </Text>
           </div>
-        </div>
-      )}
+
+          <Form.Item
+            name="isAdmin"
+            valuePropName="checked"
+            style={{ marginBottom: '32px' }}
+          >
+            <Space align="center">
+              <Switch />
+              <Text style={{ fontSize: '14px' }}>
+                Grant admin privileges
+              </Text>
+            </Space>
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }} size="middle">
+              <Button
+                size="large"
+                onClick={() => {
+                  setShowCreateForm(false);
+                  form.resetFields();
+                }}
+                style={{ borderRadius: '8px' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                size="large"
+                htmlType="submit"
+                loading={createUserMutation.isLoading}
+                style={{
+                  backgroundColor: '#3b82f6',
+                  borderColor: '#3b82f6',
+                  borderRadius: '8px'
+                }}
+              >
+                Create User
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* Users Table */}
-      <div className="card">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4">Username</th>
-                <th className="text-center py-3 px-4">ELO Rating</th>
-                <th className="text-center py-3 px-4">Matches</th>
-                <th className="text-center py-3 px-4">Win Rate</th>
-                <th className="text-center py-3 px-4">Role</th>
-                <th className="text-left py-3 px-4">Created</th>
-                <th className="text-center py-3 px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players.map((player) => (
-                <tr key={player.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="font-medium text-gray-900">{player.username}</div>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <span className="font-semibold text-gray-900">{player.elo_rating}</span>
-                  </td>
-                  <td className="py-4 px-4 text-center text-gray-600">
-                    {player.total_matches || 0}
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <span className={`font-medium ${
-                      (player.winRate || 0) >= 70 ? 'text-green-600' :
-                      (player.winRate || 0) >= 50 ? 'text-blue-600' :
-                      'text-red-600'
-                    }`}>
-                      {player.winRate || '0.0'}%
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      player.is_admin 
-                        ? 'bg-purple-100 text-purple-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {player.is_admin ? 'Admin' : 'User'}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-gray-600 text-sm">
-                    {new Date(player.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center justify-center space-x-2">
-                      <button
-                        className="text-gray-400 hover:text-blue-600 transition-colors"
-                        title="Edit user"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(player.id, player.username)}
-                        className="text-gray-400 hover:text-red-600 transition-colors"
-                        title="Delete user"
-                        disabled={deleteUserMutation.isLoading}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {players.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium mb-2">No users found</p>
-              <p>Create your first user to get started</p>
-            </div>
-          )}
-        </div>
-      </div>
+      <Card
+        style={{
+          backgroundColor: '#161616',
+          borderColor: '#262626',
+          borderRadius: '12px'
+        }}
+      >
+        <Table
+          columns={columns}
+          dataSource={players}
+          rowKey="id"
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `Total ${total} users`,
+          }}
+          locale={{
+            emptyText: (
+              <div style={{ padding: '48px 0', textAlign: 'center' }}>
+                <TeamOutlined style={{ fontSize: '48px', color: '#4b5563', marginBottom: '16px' }} />
+                <Title level={4} style={{ color: '#9ca3af', marginBottom: '8px' }}>
+                  No users found
+                </Title>
+                <Text style={{ color: '#6b7280' }}>
+                  Create your first user to get started
+                </Text>
+              </div>
+            )
+          }}
+          style={{ backgroundColor: 'transparent' }}
+        />
+      </Card>
     </div>
   );
 };

@@ -12,11 +12,7 @@ const validatePlayer = [
     .isLength({ min: 3, max: 50 })
     .withMessage('Username must be between 3-50 characters')
     .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage('Username can only contain letters, numbers, and underscores'),
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Valid email is required')
+    .withMessage('Username can only contain letters, numbers, and underscores')
 ];
 
 /**
@@ -31,7 +27,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const search = req.query.search || '';
 
     let query = `
-      SELECT id, username, email, elo_rating, is_admin, created_at,
+      SELECT id, username, elo_rating, is_admin, created_at,
              (SELECT COUNT(*) FROM matches WHERE player1_id = players.id OR player2_id = players.id AND status = 'confirmed') as total_matches,
              (SELECT COUNT(*) FROM matches WHERE winner_id = players.id AND status = 'confirmed') as wins
       FROM players
@@ -40,9 +36,9 @@ router.get('/', authenticateToken, async (req, res) => {
     let params = [];
 
     if (search) {
-      query += ' WHERE username LIKE ? OR email LIKE ?';
-      countQuery += ' WHERE username LIKE ? OR email LIKE ?';
-      params = [`%${search}%`, `%${search}%`];
+      query += ' WHERE username LIKE ?';
+      countQuery += ' WHERE username LIKE ?';
+      params = [`%${search}%`];
     }
 
     query += ' ORDER BY elo_rating DESC LIMIT ? OFFSET ?';
@@ -85,7 +81,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const playerId = parseInt(req.params.id);
 
     const player = await database.get(`
-      SELECT p.id, p.username, p.email, p.elo_rating, p.is_admin, p.created_at,
+      SELECT p.id, p.username, p.elo_rating, p.is_admin, p.created_at,
              COUNT(DISTINCT m.id) as total_matches,
              COUNT(DISTINCT CASE WHEN m.winner_id = p.id THEN m.id END) as wins
       FROM players p
@@ -139,16 +135,16 @@ router.post('/', authenticateToken, requireAdmin, validatePlayer, async (req, re
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, isAdmin = false } = req.body;
+    const { username, isAdmin = false } = req.body;
 
-    // Check if username or email already exists
+    // Check if username already exists
     const existingPlayer = await database.get(
-      'SELECT id FROM players WHERE username = ? OR email = ?',
-      [username, email]
+      'SELECT id FROM players WHERE username = ?',
+      [username]
     );
 
     if (existingPlayer) {
-      return res.status(409).json({ error: 'Username or email already exists' });
+      return res.status(409).json({ error: 'Username already exists' });
     }
 
     // Create player with default password
@@ -157,12 +153,12 @@ router.post('/', authenticateToken, requireAdmin, validatePlayer, async (req, re
     const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
     const result = await database.run(`
-      INSERT INTO players (username, email, password_hash, is_admin, elo_rating)
-      VALUES (?, ?, ?, ?, ?)
-    `, [username, email, hashedPassword, isAdmin ? 1 : 0, 1200]);
+      INSERT INTO players (username, password_hash, is_admin, elo_rating)
+      VALUES (?, ?, ?, ?)
+    `, [username, hashedPassword, isAdmin ? 1 : 0, 1200]);
 
     const newPlayer = await database.get(
-      'SELECT id, username, email, elo_rating, is_admin, created_at FROM players WHERE id = ?',
+      'SELECT id, username, elo_rating, is_admin, created_at FROM players WHERE id = ?',
       [result.id]
     );
 
@@ -190,7 +186,7 @@ router.put('/:id', authenticateToken, validatePlayer, async (req, res) => {
     }
 
     const playerId = parseInt(req.params.id);
-    const { username, email, isAdmin } = req.body;
+    const { username, isAdmin } = req.body;
 
     // Check permissions
     if (!req.user.isAdmin && req.user.id !== playerId) {
@@ -204,11 +200,6 @@ router.put('/:id', authenticateToken, validatePlayer, async (req, res) => {
     if (username) {
       updateFields.push('username = ?');
       updateValues.push(username);
-    }
-
-    if (email) {
-      updateFields.push('email = ?');
-      updateValues.push(email);
     }
 
     // Only admins can change admin status
@@ -226,7 +217,7 @@ router.put('/:id', authenticateToken, validatePlayer, async (req, res) => {
     );
 
     const updatedPlayer = await database.get(
-      'SELECT id, username, email, elo_rating, is_admin, created_at, updated_at FROM players WHERE id = ?',
+      'SELECT id, username, elo_rating, is_admin, created_at, updated_at FROM players WHERE id = ?',
       [playerId]
     );
 
@@ -243,33 +234,53 @@ router.put('/:id', authenticateToken, validatePlayer, async (req, res) => {
 
 /**
  * DELETE /api/players/:id
- * Delete player (admin only)
+ * Delete player and all their match data (admin only)
  */
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const playerId = parseInt(req.params.id);
 
     // Check if player exists
-    const player = await database.get('SELECT id FROM players WHERE id = ?', [playerId]);
+    const player = await database.get('SELECT id, username FROM players WHERE id = ?', [playerId]);
     if (!player) {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    // Check if player has matches
-    const hasMatches = await database.get(
-      'SELECT id FROM matches WHERE player1_id = ? OR player2_id = ? LIMIT 1',
+    // Get counts for logging
+    const matchRequestCount = await database.get(
+      'SELECT COUNT(*) as count FROM match_requests WHERE requesting_player_id = ? OR confirming_player_id = ?',
+      [playerId, playerId]
+    );
+    const matchCount = await database.get(
+      'SELECT COUNT(*) as count FROM matches WHERE player1_id = ? OR player2_id = ?',
       [playerId, playerId]
     );
 
-    if (hasMatches) {
-      return res.status(400).json({ 
-        error: 'Cannot delete player with existing matches. Consider deactivating instead.' 
-      });
-    }
+    // Delete all match requests involving this player
+    await database.run(
+      'DELETE FROM match_requests WHERE requesting_player_id = ? OR confirming_player_id = ?',
+      [playerId, playerId]
+    );
 
+    // Delete all matches involving this player
+    await database.run(
+      'DELETE FROM matches WHERE player1_id = ? OR player2_id = ?',
+      [playerId, playerId]
+    );
+
+    // Finally, delete the player
     await database.run('DELETE FROM players WHERE id = ?', [playerId]);
 
-    res.json({ message: 'Player deleted successfully' });
+    console.log(`Player ${player.username} (ID: ${playerId}) deleted with ${matchCount.count} matches and ${matchRequestCount.count} match requests`);
+
+    res.json({ 
+      message: 'Player and all associated match data deleted successfully',
+      deletedData: {
+        player: player.username,
+        matchesDeleted: matchCount.count,
+        matchRequestsDeleted: matchRequestCount.count
+      }
+    });
 
   } catch (error) {
     console.error('Delete player error:', error);

@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { publicAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Card, Typography, Table, Statistic, Row, Col, Tag } from 'antd';
-import { TrophyOutlined, MedalOutlined, CrownOutlined } from '@ant-design/icons';
+import PlayerProfileModal from '../components/PlayerProfileModal';
+import { Card, Typography, Table, Statistic, Row, Col, Tag, Button } from 'antd';
+import { TrophyOutlined, MedalOutlined, CrownOutlined, UserOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
 const LeaderboardPage = () => {
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+
   const { data, isLoading, error } = useQuery(
     'leaderboard',
     () => publicAPI.getLeaderboard({ limit: 50, min_matches: 3 })
@@ -15,6 +19,18 @@ const LeaderboardPage = () => {
 
   const leaderboard = data?.data?.leaderboard || [];
   const stats = data?.data?.stats || {};
+
+  const handlePlayerClick = (username) => {
+    console.log('Player clicked:', username);
+    alert(`Clicked on player: ${username}`);
+    setSelectedPlayer(username);
+    setProfileModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setProfileModalVisible(false);
+    setSelectedPlayer(null);
+  };
 
   if (isLoading) {
     return (
@@ -67,7 +83,22 @@ const LeaderboardPage = () => {
       dataIndex: 'username',
       key: 'username',
       render: (username) => (
-        <Text strong style={{ color: '#fff' }}>{username}</Text>
+        <Button 
+          type="primary" 
+          ghost
+          onClick={() => handlePlayerClick(username)}
+          style={{ 
+            padding: '4px 8px', 
+            height: 'auto',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: '#3b82f6',
+            borderColor: '#3b82f6'
+          }}
+          icon={<UserOutlined style={{ marginRight: '4px' }} />}
+        >
+          {username}
+        </Button>
       ),
     },
     {
@@ -129,6 +160,15 @@ const LeaderboardPage = () => {
         <Text style={{ color: '#9ca3af' }}>
           Rankings based on ELO rating. Minimum 3 matches required to appear on leaderboard.
         </Text>
+        {/* Test button */}
+        <div style={{ marginTop: '16px' }}>
+          <Button 
+            type="primary" 
+            onClick={() => handlePlayerClick('test')}
+          >
+            Test Modal (Click test player)
+          </Button>
+        </div>
       </div>
 
       {/* Stats Overview */}
@@ -224,6 +264,13 @@ const LeaderboardPage = () => {
           }}
         />
       </Card>
+
+      {/* Player Profile Modal */}
+      <PlayerProfileModal
+        visible={profileModalVisible}
+        onClose={handleCloseModal}
+        username={selectedPlayer}
+      />
     </div>
   );
 };

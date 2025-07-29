@@ -16,7 +16,7 @@ const validateMatch = [
 
 /**
  * POST /api/matches
- * Create a new match (requires confirmation from opponent)
+ * Create a new match (automatically approved)
  */
 router.post('/', authenticateToken, validateMatch, async (req, res) => {
   try {
@@ -49,23 +49,48 @@ router.post('/', authenticateToken, validateMatch, async (req, res) => {
       return res.status(400).json({ error: 'Matches cannot end in a tie in ping pong' });
     }
 
-    // Create match
-    const matchResult = await database.run(`
-      INSERT INTO matches (player1_id, player2_id, player1_score, player2_score, winner_id, status)
-      VALUES (?, ?, ?, ?, ?, 'pending')
-    `, [requesting_player_id, opponent_id, player_score, opponent_score, winner_id]);
+    // Get current ELO ratings for both players
+    const [player1, player2] = await Promise.all([
+      database.get('SELECT id, elo_rating FROM players WHERE id = ?', [requesting_player_id]),
+      database.get('SELECT id, elo_rating FROM players WHERE id = ?', [opponent_id])
+    ]);
 
-    // Create match request
-    await database.run(`
-      INSERT INTO match_requests (match_id, requesting_player_id, confirming_player_id, status)
-      VALUES (?, ?, ?, 'pending')
-    `, [matchResult.id, requesting_player_id, opponent_id]);
+    // Calculate ELO changes
+    const eloResults = eloCalc.calculateNewRatings(
+      player1.elo_rating,
+      player2.elo_rating,
+      player_score,
+      opponent_score
+    );
+
+    // Create and immediately confirm the match in a transaction
+    const matchResult = await database.run(`
+      INSERT INTO matches (player1_id, player2_id, player1_score, player2_score, winner_id, status, confirmed_at, 
+                          player1_elo_before, player2_elo_before, player1_elo_after, player2_elo_after)
+      VALUES (?, ?, ?, ?, ?, 'confirmed', CURRENT_TIMESTAMP, ?, ?, ?, ?)
+    `, [requesting_player_id, opponent_id, player_score, opponent_score, winner_id,
+        player1.elo_rating, player2.elo_rating, eloResults.player1.newRating, eloResults.player2.newRating]);
+
+    // Update player ELO ratings immediately
+    await Promise.all([
+      database.run(`
+        UPDATE players 
+        SET elo_rating = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `, [eloResults.player1.newRating, player1.id]),
+      
+      database.run(`
+        UPDATE players 
+        SET elo_rating = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `, [eloResults.player2.newRating, player2.id])
+    ]);
 
     // Get the created match with player info
     const match = await database.get(`
       SELECT m.*, 
-             p1.username as player1_username,
-             p2.username as player2_username,
+             p1.username as player1_username, p1.elo_rating as player1_elo,
+             p2.username as player2_username, p2.elo_rating as player2_elo,
              w.username as winner_username
       FROM matches m
       JOIN players p1 ON m.player1_id = p1.id
@@ -75,8 +100,12 @@ router.post('/', authenticateToken, validateMatch, async (req, res) => {
     `, [matchResult.id]);
 
     res.status(201).json({
-      message: 'Match created successfully. Waiting for opponent confirmation.',
-      match
+      message: 'Match created and confirmed successfully! ELO ratings have been updated.',
+      match,
+      eloChanges: {
+        [player1.id]: eloResults.player1,
+        [player2.id]: eloResults.player2
+      }
     });
 
   } catch (error) {
@@ -144,12 +173,14 @@ router.put('/:id/confirm', authenticateToken, async (req, res) => {
 
     // Update all records atomically
     await Promise.all([
-      // Update match status
+      // Update match status and ELO data
       database.run(`
         UPDATE matches 
-        SET status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP 
+        SET status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP,
+            player1_elo_before = ?, player2_elo_before = ?,
+            player1_elo_after = ?, player2_elo_after = ?
         WHERE id = ?
-      `, [matchId]),
+      `, [player1.elo_rating, player2.elo_rating, eloResults.player1.newRating, eloResults.player2.newRating, matchId]),
       
       // Update match request
       database.run(`
